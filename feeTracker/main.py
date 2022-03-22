@@ -170,9 +170,9 @@ def create():
 
 @app.route('/fee_in_period', methods=['GET'])
 def get_avg_in_period():
-    print("high")
+    print("Верхняя граница времени")
     t1 = input() #2022-03-22-23.00.31
-    print("low")
+    print("Нижняя граница времени")
     t2 = input() #2022-03-22-21.11.46
     con = sqlite3.connect('avgFee.db')
     cur = con.cursor()

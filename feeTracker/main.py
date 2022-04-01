@@ -8,26 +8,25 @@ app = Flask(__name__)
 
 
 @app.route('/get_optional', methods=['GET'])
-def gey_optional():
+def get_optional():
     con = sqlite3.connect('avgFee.db')
     cur = con.cursor()
     cur.execute("""SELECT * FROM avgFee ORDER BY Date DESC LIMIT 1""")
-    data = cur.fetchone()
-    response = {
-        'date': data[0],
-        'avg': data[1]
-    }
-    return jsonify(response), 200
+    try:
+        data = cur.fetchone()
+        response = {
+            'date': data[0],
+            'avg': data[1]
+        }
+        return jsonify(response), 200
+    except:
+        return jsonify("error: empty")
 
+@app.route('/fee_in_period/from=<t1>&to=<t2>', methods=['GET']) #input date format YYYY-MM-DD-HH-MM-SS
+def get_avg_in_period(t1, t2):
 
-@app.route('/fee_in_period', methods=['GET']) #input date format YYYY-MM-DD-HH-MM-SS
-def get_avg_in_period():
-    print("Верхняя граница времени")
-    t1 = input()  # 2022-03-27-14.11.21
-    print("Нижняя граница времени")
-    t2 = input()  # 2022-03-22-22.19.00
-    con = sqlite3.connect('avgFee.db')
-    cur = con.cursor()
+    con = sqlite3.connect('avgFee.db') # 2022-03-27-14.11.21
+    cur = con.cursor() # 2022-03-22-22.19.00
     sql_select_query = """SELECT * FROM avgFee """
     cur.execute(sql_select_query)
     recs = cur.fetchall()
@@ -39,10 +38,12 @@ def get_avg_in_period():
 
 
 def adding(par):
-    while True:
-        if par.value == True:
-            funcs.feeRate_to_db()
-        time.sleep(1)
+
+        while True:
+            if par.value == True:
+                funcs.feeRate_to_db()
+            time.sleep(60)
+
 
 
 if __name__ == '__main__':

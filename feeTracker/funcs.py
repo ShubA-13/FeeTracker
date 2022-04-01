@@ -1,8 +1,11 @@
 import json
+import time
+
 import requests
 from datetime import datetime
 import os
 import sqlite3
+import random
 
 
 def get_transactions():
@@ -10,52 +13,55 @@ def get_transactions():
     response = requests.get(url)
     transactions = response.json()
 
-    for i in range(len(transactions)):
-        for k in range(len(transactions)):
-            dt_now = datetime.now()
-            transactions[k]["date"] = dt_now.strftime("%Y-%m-%d-%H.%M.%S")
+    if (transactions):
+        for i in range(len(transactions)):
+            for k in range(len(transactions)):
+                if (transactions[i]['vsize']):
+                    transactions[k]["feeRate"] = transactions[k]["fee"] / transactions[i]["vsize"]
+                else:
+                    transactions[k]["feeRate"] = transactions[k]["fee"] / transactions[i]["size"]
+            for j in range(0, len(transactions) - i - 1):
+                if (transactions[j]["feeRate"] < transactions[j + 1]["feeRate"]):
+                    a = transactions[j]
+                    transactions[j] = transactions[j + 1]
+                    transactions[j + 1] = a
 
-            if (transactions[i]['vsize']):
-                transactions[k]["feeRate"] = transactions[k]["fee"] / transactions[i]["vsize"]
-            else:
-                transactions[k]["feeRate"] = transactions[k]["fee"] / transactions[i]["size"]
-        for j in range(0, len(transactions) - i - 1):
-            if (transactions[j]["feeRate"] < transactions[j + 1]["feeRate"]):
-                a = transactions[j]
-                transactions[j] = transactions[j + 1]
-                transactions[j + 1] = a
+        if os.stat('mempool1.json').st_size == 0:
+            with open('mempool1.json', 'w') as m:
+                json.dump(transactions, m, indent=4)
+        else:
+            with open('mempool2.json', 'w') as m:
+                json.dump(transactions, m, indent=4)
 
-    if os.stat('mempool1.json').st_size == 0:
+        with open('mempool1.json', 'r') as f:
+            mempool1 = json.load(f)
+
+        if os.stat('mempool2.json').st_size != 0:
+            with open('mempool2.json', 'r') as f:
+                mempool2 = json.load(f)
+
+            for i in range(len(mempool2)):
+                mempool1.append(mempool2[i])
+
+            for i in range(len(mempool1)):
+                for j in range(0, len(mempool1) - i - 1):
+                    if mempool1[j]['feeRate'] < mempool1[j + 1]['feeRate']:
+                        a = mempool1[j]
+                        mempool1[j] = mempool1[j + 1]
+                        mempool1[j + 1] = a
+
+        Mempool = []
+        for i in range(len(mempool1) - 1):
+            if mempool1[i]['txid'] != mempool1[i + 1]['txid']:
+                Mempool.append(mempool1[i])
+
         with open('mempool1.json', 'w') as m:
-            json.dump(transactions, m, indent=4)
+            json.dump(Mempool, m, indent=4)
+
     else:
-        with open('mempool2.json', 'w') as m:
-            json.dump(transactions, m, indent=4)
+        print("NO NEW TRANSACTIONS!")
 
-    with open('mempool1.json', 'r') as f:
-        mempool1 = json.load(f)
-
-    if os.stat('mempool2.json').st_size != 0:
-        with open('mempool2.json', 'r') as f:
-            mempool2 = json.load(f)
-
-        for i in range(len(mempool2)):
-            mempool1.append(mempool2[i])
-
-        for i in range(len(mempool1)):
-            for j in range(0, len(mempool1) - i - 1):
-                if mempool1[j]['feeRate'] < mempool1[j + 1]['feeRate']:
-                    a = mempool1[j]
-                    mempool1[j] = mempool1[j + 1]
-                    mempool1[j + 1] = a
-
-    Mempool = []
-    for i in range(len(mempool1) - 1):
-        if mempool1[i]['txid'] != mempool1[i + 1]['txid']:
-            Mempool.append(mempool1[i])
-
-    with open('mempool1.json', 'w') as m:
-        json.dump(Mempool, m, indent=4)
+    response.close()
 
 
 def max_feeRate():  # максимальный feeRate
@@ -168,3 +174,4 @@ def load():
     block_size = 1000000
     while sum_size() <= block_size:
         get_transactions()
+        time.sleep(random.uniform(1, 5))

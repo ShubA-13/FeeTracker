@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM python:3.9-slim-buster
 WORKDIR /main
-COPY Docker .
-RUN pip install -r requirements.txt
-CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+COPY * ./
+RUN pip install -r /main/requirements.txt
+EXPOSE 5000/tcp
+CMD [ "python3", "/main/main.py"]

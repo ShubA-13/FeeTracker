@@ -3,6 +3,7 @@ import sqlite3
 import time
 from multiprocessing import Process, Value
 import funcs
+import os
 
 app = Flask(__name__)
 
@@ -22,11 +23,11 @@ def get_optional():
     except:
         return jsonify("error: empty")
 
-@app.route('/fee_in_period/from=<t1>&to=<t2>', methods=['GET']) #input date format YYYY-MM-DD-HH-MM-SS
-def get_avg_in_period(t1, t2):
 
-    con = sqlite3.connect('avgFee.db') # 2022-03-27-14.11.21
-    cur = con.cursor() # 2022-03-22-22.19.00
+@app.route('/fee_in_period/from=<t1>&to=<t2>', methods=['GET'])  # input date format YYYY-MM-DD-HH-MM-SS
+def get_avg_in_period(t1, t2):
+    con = sqlite3.connect('avgFee.db')  # 2022-03-27-14.11.21
+    cur = con.cursor()  # 2022-03-22-22.19.00
     sql_select_query = """SELECT * FROM avgFee """
     cur.execute(sql_select_query)
     recs = cur.fetchall()
@@ -38,15 +39,25 @@ def get_avg_in_period(t1, t2):
 
 
 def adding(par):
-
-        while True:
-            if par.value == True:
-                funcs.feeRate_to_db()
-            time.sleep(60)
-
+    while True:
+        if par.value == True:
+            funcs.feeRate_to_db()
+        time.sleep(60)
 
 
 if __name__ == '__main__':
+    if not os.path.isfile('mempool1.json'):
+        file = open('mempool1.json', 'r')
+        file.close()
+
+    if not os.path.isfile('mempool2.json'):
+        file = open('mempool2.json', 'r')
+        file.close()
+
+    if not os.path.isfile('avgFee.db'):
+        file = open('avgFee.db', 'r')
+        file.close()
+
     pars = Value('d', True)
     p = Process(target=adding, args=(pars,))
     p.start()

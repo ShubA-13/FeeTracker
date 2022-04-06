@@ -63,6 +63,7 @@ def get_transactions():
     response.close()
 
 
+
 def max_feeRate():  # максимальный feeRate
     with open('mempool1.json', 'r') as f:
         Mempool = json.load(f)
@@ -94,7 +95,6 @@ def avg_feeRate():  # средний feeRate
     with open('mempool1.json', 'r') as f:
         Mempool = json.load(f)
     avg = int_r(Mempool[1000]['feeRate'])
-    mine_block()
     return avg
 
 
@@ -163,6 +163,7 @@ def feeRate_to_db():
     dt_now = datetime.now()
     t = dt_now.strftime("%Y-%m-%d-%H.%M.%S")
     avg = avg_feeRate()
+    mempool()
     p = (t, avg)
     cur.execute("INSERT INTO avgFee VALUES(?, ?);", p)
     con.commit()
@@ -174,3 +175,50 @@ def load():
     while sum_size() <= block_size:
         get_transactions()
         time.sleep(random.uniform(1, 5))
+
+
+def load_id(par):
+    while True:
+        if par.value == True:
+            url = 'https://mempool.space/api/mempool/txids'
+            response = requests.get(url)
+            mempoolTxIds = response.json()
+            with open('Mempool_id.json', 'w') as m:
+                json.dump(mempoolTxIds, m, indent=4)
+            response.close()
+        time.sleep(60)
+
+
+def mempool():
+    txsParams = []
+    with open('Mempool_id.json', 'r') as f:
+        mempoolTxIds = json.load(f)
+    with open('mempool1.json', 'r') as f:
+        mempool1 = json.load(f)
+    for i in range(len(mempoolTxIds)):
+        for j in range(len(mempool1)):
+            if mempoolTxIds[i] == mempool1[j]["txid"]:
+                txsParams.append(mempool1[j])
+    for i in range(len(txsParams)):
+        for j in range(0, len(txsParams) - i - 1):
+            if txsParams[j]['feeRate'] < txsParams[j + 1]['feeRate']:
+                a = txsParams[j]
+                txsParams[j] = txsParams[j + 1]
+                txsParams[j + 1] = a
+    with open('mempool1.json', 'w') as m:
+        json.dump(txsParams, m, indent=4)
+
+
+# def compare():
+#     com = []
+#     with open('Mempool_id.json', 'r') as f:
+#         mempoolTxIds = json.load(f)
+#     with open('Mempool.json', 'r') as f:
+#         Mempool = json.load(f)
+#     for i in range(len(Mempool)):
+#         if mempoolTxIds.count(Mempool[i]["txid"]) != 0:
+#             com.append(Mempool[i])
+#     with open('Mempool.json', 'w') as m:
+#         json.dump(com, m, indent=4)
+#     with open('mempool1.json', 'w') as m:
+#         json.dump(com, m, indent=4)

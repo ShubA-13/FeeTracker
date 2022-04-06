@@ -46,6 +46,10 @@ def adding(par):
 
 
 if __name__ == '__main__':
+    if not os.path.isfile('Mempool_id.json'):
+        file = open('Mempool_id.json', 'r')
+        file.close()
+
     if not os.path.isfile('mempool1.json'):
         file = open('mempool1.json', 'r')
         file.close()
@@ -60,6 +64,9 @@ if __name__ == '__main__':
 
     pars = Value('d', True)
     p = Process(target=adding, args=(pars,))
+    d = Process(target=funcs.load_id, args=(pars,))
+    d.start()
     p.start()
     app.run(host='0.0.0.0', port=5000)
+    d.join()
     p.join()

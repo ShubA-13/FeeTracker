@@ -12,8 +12,8 @@ app = Flask(__name__)
 def get_optional():
     con = sqlite3.connect('avgFee.db')
     cur = con.cursor()
-    cur.execute("""SELECT * FROM avgFee ORDER BY Date DESC LIMIT 1""")
     try:
+        cur.execute("""SELECT * FROM avgFee ORDER BY Date DESC LIMIT 1""")
         data = cur.fetchone()
         response = {
             'date': data[0],
@@ -47,20 +47,21 @@ def adding(par):
 
 if __name__ == '__main__':
     if not os.path.isfile('Mempool_id.json'):
-        file = open('Mempool_id.json', 'r')
+        file = open('Mempool_id.json', 'w')
         file.close()
 
     if not os.path.isfile('mempool1.json'):
-        file = open('mempool1.json', 'r')
+        file = open('mempool1.json', 'w')
         file.close()
 
     if not os.path.isfile('mempool2.json'):
-        file = open('mempool2.json', 'r')
+        file = open('mempool2.json', 'w')
         file.close()
 
     if not os.path.isfile('avgFee.db'):
-        file = open('avgFee.db', 'r')
+        file = open('avgFee.db', 'w')
         file.close()
+
 
     pars = Value('d', True)
     p = Process(target=adding, args=(pars,))

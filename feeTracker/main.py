@@ -62,7 +62,7 @@ if __name__ == '__main__':
         file = open('avgFee.db', 'w')
         file.close()
 
-
+    funcs.mempool()
     pars = Value('d', True)
     p = Process(target=adding, args=(pars,))
     d = Process(target=funcs.load_id, args=(pars,))

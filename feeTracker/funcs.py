@@ -94,7 +94,7 @@ def avg_feeRate():  # средний feeRate
     # return avg_feeRate
     with open('mempool1.json', 'r') as f:
         Mempool = json.load(f)
-    avg = int_r(Mempool[1000]['feeRate'])
+    avg = int_r(Mempool[1500]['feeRate'])
     return avg
 
 

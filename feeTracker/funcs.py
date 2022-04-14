@@ -8,71 +8,62 @@ import random
 
 
 def get_transactions():
+    print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Send request https://mempool.space/api/mempool/recent')
     url = 'https://mempool.space/api/mempool/recent'
     response = requests.get(url)
     transactions = response.json()
 
     if (transactions):
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive response OK')
         for i in range(len(transactions)):
-            for k in range(len(transactions)):
-                if (transactions[i]['vsize']):
-                    transactions[k]["feeRate"] = transactions[k]["fee"] / transactions[i]["vsize"]
-                else:
-                    transactions[k]["feeRate"] = transactions[k]["fee"] / transactions[i]["size"]
-            for j in range(0, len(transactions) - i - 1):
-                if (transactions[j]["feeRate"] < transactions[j + 1]["feeRate"]):
-                    a = transactions[j]
-                    transactions[j] = transactions[j + 1]
-                    transactions[j + 1] = a
+            transactions[i]["feeRate"] = transactions[i]["fee"] / transactions[i]["vsize"]
 
-        if os.stat('mempool1.json').st_size == 0:
-            with open('mempool1.json', 'w') as m:
+        if os.stat('mempool.json').st_size == 0:
+            with open('mempool.json', 'w') as m:
                 json.dump(transactions, m, indent=4)
+
         else:
-            with open('mempool2.json', 'w') as m:
-                json.dump(transactions, m, indent=4)
+            with open('mempool.json', 'r') as f:
+                mempool = json.load(f)
 
-        with open('mempool1.json', 'r') as f:
-            mempool1 = json.load(f)
+            for i in range(len(transactions)):
+                mempool.append(transactions[i])
 
-        if os.stat('mempool2.json').st_size != 0:
-            with open('mempool2.json', 'r') as f:
-                mempool2 = json.load(f)
+            Mempool = check_same(mempool)
 
-            for i in range(len(mempool2)):
-                mempool1.append(mempool2[i])
+            print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Mempool txs ids cache size', len(Mempool))
+            print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Mempool txs cache size', sum_size())
 
-            for i in range(len(mempool1)):
-                for j in range(0, len(mempool1) - i - 1):
-                    if mempool1[j]['feeRate'] < mempool1[j + 1]['feeRate']:
-                        a = mempool1[j]
-                        mempool1[j] = mempool1[j + 1]
-                        mempool1[j + 1] = a
-
-        Mempool = []
-        for i in range(len(mempool1) - 1):
-            if mempool1[i]['txid'] != mempool1[i + 1]['txid']:
-                Mempool.append(mempool1[i])
-
-        with open('mempool1.json', 'w') as m:
-            json.dump(Mempool, m, indent=4)
+            with open('mempool.json', 'w') as m:
+                json.dump(Mempool, m, indent=4)
 
     else:
-        print("NO NEW TRANSACTIONS!")
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive error response with 404')
 
     response.close()
 
 
+def sort():
+    with open('mempool.json', 'r') as f:
+        mempool = json.load(f)
 
-def max_feeRate():  # максимальный feeRate
-    with open('mempool1.json', 'r') as f:
-        Mempool = json.load(f)
-    maxFeeRate = 0
-    for i in range(len(Mempool)):
-        if Mempool[i]['feeRate'] > maxFeeRate:
-            maxFeeRate = Mempool[i]['feeRate']
+    for i in range(len(mempool)):
+        for j in range(0, len(mempool) - i - 1):
+            if (mempool[j]["feeRate"] < mempool[j + 1]["feeRate"]):
+                a = mempool[j]
+                mempool[j] = mempool[j + 1]
+                mempool[j + 1] = a
 
-    return maxFeeRate
+    with open('mempool.json', 'w') as m:
+        json.dump(mempool, m, indent=4)
+
+
+def check_same(massive):
+    m = []
+    for i in range(len(massive) - 1):
+        if massive[i]['txid'] != massive[i + 1]['txid']:
+            m.append(massive[i])
+    return m
 
 
 def int_r(n):
@@ -81,25 +72,14 @@ def int_r(n):
 
 
 def avg_feeRate():  # средний feeRate
-    # with open('mempool1.json', 'r') as f:
-    #     Mempool = json.load(f)
-    #
-    # last = near_block_min_fee_position()
-    # sum_s = 0
-    # sum_f = 0
-    # for i in range(last):
-    #     sum_s += Mempool[i]['vsize']
-    #     sum_f += Mempool[i]['fee']
-    # avg_feeRate = sum_f / sum_s
-    # return avg_feeRate
-    with open('mempool1.json', 'r') as f:
+    with open('mempool.json', 'r') as f:
         Mempool = json.load(f)
-    avg = int_r(Mempool[1500]['feeRate'])
+    avg = int_r(Mempool[1000]['feeRate'])
     return avg
 
 
 def sum_size():  # вес всего мемпула
-    with open('mempool1.json', 'r') as f:
+    with open('mempool.json', 'r') as f:
         Mempool = json.load(f)
         sum = 0
     for i in range(len(Mempool)):
@@ -107,51 +87,13 @@ def sum_size():  # вес всего мемпула
     return sum
 
 
-def near_block_min_fee():  # минимальный feeRate транзакции, попадающей в блок последней
-    with open('mempool1.json', 'r') as f:
-        Mempool = json.load(f)
-    nearBlockMinFee_number = 0
-    sum = 0
-    oneBlockSize = 1000000
-    for i in range(len(Mempool)):
-        sum += Mempool[i]['vsize']
-        if sum <= oneBlockSize:
-            nearBlockMinFee_number = i
-    last = Mempool[nearBlockMinFee_number]['feeRate']  # fee последней транзакции, котроая войдет в блок
-    return last
-
-
-def near_block_min_fee_position():  # номер транзакции с минимальным feeRate, которая попадет в блок
-    with open('mempool1.json', 'r') as f:
-        Mempool = json.load(f)
-    nearBlockMinFee_number = 0
-    sum = 0
-    oneBlockSize = 1000000
-    for i in range(len(Mempool)):
-        sum += Mempool[i]['vsize']
-        if sum <= oneBlockSize:
-            nearBlockMinFee_number = i
-    return nearBlockMinFee_number
-
-
 def amount_of_transactions():  # количество транзакций в пуле
-    with open('mempool1.json', 'r') as f:
+    with open('mempool.json', 'r') as f:
         Mempool = json.load(f)
     count = 0
     for i in range(len(Mempool)):
         count += 1
     return count
-
-
-def mine_block():  # первые тракзакции с наибольшим feeRate и сумма которых = 1Мб отправляем в блок(просто удаляем, чтобы счиатть дальше)
-    with open('mempool1.json', 'r') as f:
-        Mempool = json.load(f)
-    pool = []
-    last = near_block_min_fee_position()
-    for i in range(last, len(Mempool)):
-        pool.append(Mempool[i])
-    with open('mempool1.json', 'w') as m:
-        json.dump(pool, m, indent=4)
 
 
 def feeRate_to_db():
@@ -174,6 +116,7 @@ def load():
     block_size = 1000000
     while sum_size() <= block_size:
         get_transactions()
+        sort()
         time.sleep(random.uniform(1, 5))
 
 
@@ -193,7 +136,7 @@ def mempool():
     txsParams = []
     with open('Mempool_id.json', 'r') as f:
         mempoolTxIds = json.load(f)
-    with open('mempool1.json', 'r') as f:
+    with open('mempool.json', 'r') as f:
         mempool1 = json.load(f)
     for i in range(len(mempoolTxIds)):
         for j in range(len(mempool1)):
@@ -205,20 +148,5 @@ def mempool():
                 a = txsParams[j]
                 txsParams[j] = txsParams[j + 1]
                 txsParams[j + 1] = a
-    with open('mempool1.json', 'w') as m:
+    with open('mempool.json', 'w') as m:
         json.dump(txsParams, m, indent=4)
-
-
-# def compare():
-#     com = []
-#     with open('Mempool_id.json', 'r') as f:
-#         mempoolTxIds = json.load(f)
-#     with open('Mempool.json', 'r') as f:
-#         Mempool = json.load(f)
-#     for i in range(len(Mempool)):
-#         if mempoolTxIds.count(Mempool[i]["txid"]) != 0:
-#             com.append(Mempool[i])
-#     with open('Mempool.json', 'w') as m:
-#         json.dump(com, m, indent=4)
-#     with open('mempool1.json', 'w') as m:
-#         json.dump(com, m, indent=4)

@@ -50,19 +50,16 @@ if __name__ == '__main__':
         file = open('Mempool_id.json', 'w')
         file.close()
 
-    if not os.path.isfile('mempool1.json'):
-        file = open('mempool1.json', 'w')
-        file.close()
-
-    if not os.path.isfile('mempool2.json'):
-        file = open('mempool2.json', 'w')
+    if not os.path.isfile('mempool.json'):
+        file = open('mempool.json', 'w')
         file.close()
 
     if not os.path.isfile('avgFee.db'):
         file = open('avgFee.db', 'w')
         file.close()
 
-    funcs.mempool()
+    if os.stat('mempool.json').st_size != 0:
+        funcs.mempool()
     pars = Value('d', True)
     p = Process(target=adding, args=(pars,))
     d = Process(target=funcs.load_id, args=(pars,))

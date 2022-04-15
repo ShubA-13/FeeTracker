@@ -26,8 +26,8 @@ def get_optional():
 
 @app.route('/fee_in_period/from=<t1>&to=<t2>', methods=['GET'])  # input date format YYYY-MM-DD-HH-MM-SS
 def get_avg_in_period(t1, t2):
-    con = sqlite3.connect('avgFee.db')  # 2022-03-27-14.11.21
-    cur = con.cursor()  # 2022-03-22-22.19.00
+    con = sqlite3.connect('avgFee.db')
+    cur = con.cursor()
     sql_select_query = """SELECT * FROM avgFee """
     cur.execute(sql_select_query)
     recs = cur.fetchall()

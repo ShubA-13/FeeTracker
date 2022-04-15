@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import sqlite3
 import time
 from multiprocessing import Process, Value
@@ -21,21 +21,29 @@ def get_optional():
         }
         return jsonify(response), 200
     except:
-        return jsonify("error: empty")
+        return jsonify('empty')
 
 
-@app.route('/fee_in_period/from=<t1>&to=<t2>', methods=['GET'])  # input date format YYYY-MM-DD-HH-MM-SS
-def get_avg_in_period(t1, t2):
+@app.route('/fee_in_period/', methods=['GET'])  # input date format YYYY-MM-DD-HH-MM-SS
+def get_avg_in_period():
+    t1 = request.args.get('from')
+    t2 = request.args.get('to')
     con = sqlite3.connect('avgFee.db')
     cur = con.cursor()
-    sql_select_query = """SELECT * FROM avgFee """
-    cur.execute(sql_select_query)
-    recs = cur.fetchall()
-    data = []
-    for row in recs:
-        if row[0] <= t1 and row[0] >= t2:
-            data.append({'Data': row[0], 'avg': row[1]})
-    return jsonify(data), 200
+    try:
+        sql_select_query = """SELECT * FROM avgFee """
+        cur.execute(sql_select_query)
+        recs = cur.fetchall()
+        data = []
+        for row in recs:
+            if row[0] <= t1 and row[0] >= t2:
+                data.append({'Data': row[0], 'avg': row[1]})
+        if len(data) != 0:
+            return jsonify(data), 200
+        else:
+            return jsonify('no results in this period')
+    except:
+        return jsonify('empty')
 
 
 def adding(par):

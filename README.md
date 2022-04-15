@@ -9,5 +9,5 @@ FeeRate = fee/size sat/B. Then it stores the data to avgFee.db which created loc
 feilds like "id", "size", "fee". 
 
 To use this FeeTracker you need to clone this repository locally to your PC and build container by command `docker-compost up -d --build`
-Then you can check optimal FeeRate in browser `http://localhost:5000/get_optional` and `http://localhost:5000/fee_in_period/from=<t1>&to=<t2>`, 
+Then you can check optimal FeeRate in browser `http://localhost:5000/get_optional` and `http://localhost:5000/fee_in_period?from=<t1>&to=<t2>`, 
 where **t1** and **t2** dates format [YYYY-MM-DD-HH-MM-SS], to get FeeRare in period from **t1** to **t2** (**t1** must be later).

@@ -7,7 +7,7 @@ import sqlite3
 import random
 
 
-def get_transactions():
+def get_transactions_from_MempoolSpace():
     print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Send request https://mempool.space/api/mempool/recent')
     url = 'https://mempool.space/api/mempool/recent'
     response = requests.get(url)
@@ -112,10 +112,10 @@ def feeRate_to_db():
 
 
 def load():
-    get_transactions()
+    get_transactions_from_MempoolSpace()
     block_size = 1000000
     while sum_size() <= block_size:
-        get_transactions()
+        get_transactions_from_MempoolSpace()
         sort()
         time.sleep(random.uniform(1, 5))
 

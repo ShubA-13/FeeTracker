@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 import sqlite3
-import time
+from datetime import datetime
 from multiprocessing import Process, Value
 import funcs
 import os
@@ -26,8 +26,10 @@ def get_optional():
 
 @app.route('/fee_in_period/', methods=['GET'])  # input date format YYYY-MM-DD-HH-MM-SS
 def get_avg_in_period():
-    t1 = request.args.get('from')
-    t2 = request.args.get('to')
+    t1 = request.args.get('to')
+    t2 = request.args.get('from')
+    if (t1 < t2):
+        return jsonify('incorrect dates!')
     con = sqlite3.connect('avgFee.db')
     cur = con.cursor()
     try:
@@ -46,30 +48,28 @@ def get_avg_in_period():
         return jsonify('empty')
 
 
-def adding(par):
-    while True:
-        if par.value == True:
-            funcs.feeRate_to_db()
-        time.sleep(60)
-
-
 if __name__ == '__main__':
+
     if not os.path.isfile('Mempool_id.json'):
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] lockal mempool is creating')
         file = open('Mempool_id.json', 'w')
         file.close()
 
     if not os.path.isfile('mempool.json'):
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] lockal list of mempool TXIDs is creating')
         file = open('mempool.json', 'w')
         file.close()
 
     if not os.path.isfile('avgFee.db'):
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] lockal DB is creating')
         file = open('avgFee.db', 'w')
         file.close()
 
     if os.stat('mempool.json').st_size != 0:
-        funcs.mempool()
+        funcs.mine_block()
+
     pars = Value('d', True)
-    p = Process(target=adding, args=(pars,))
+    p = Process(target=funcs.process, args=(pars,))
     d = Process(target=funcs.load_id, args=(pars,))
     d.start()
     p.start()

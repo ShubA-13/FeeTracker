@@ -6,6 +6,9 @@ import os
 import sqlite3
 import random
 
+fee_r = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
+         11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 0, 19: 0, '20&More': 0}
+
 
 def get_transactions_from_MempoolSpace():
     print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Send request https://mempool.space/api/mempool/recent')
@@ -16,7 +19,7 @@ def get_transactions_from_MempoolSpace():
     if (transactions):
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive response OK')
         for i in range(len(transactions)):
-            transactions[i]["feeRate"] = transactions[i]["fee"] / transactions[i]["vsize"]
+            transactions[i]["feeRate"] = int_r(transactions[i]["fee"] / transactions[i]["vsize"])
 
         if os.stat('mempool.json').st_size == 0:
             with open('mempool.json', 'w') as m:
@@ -43,19 +46,87 @@ def get_transactions_from_MempoolSpace():
     response.close()
 
 
-def sort():
+def get_mempool_from_file():
     with open('mempool.json', 'r') as f:
         mempool = json.load(f)
+    return mempool
 
-    for i in range(len(mempool)):
-        for j in range(0, len(mempool) - i - 1):
-            if (mempool[j]["feeRate"] < mempool[j + 1]["feeRate"]):
-                a = mempool[j]
-                mempool[j] = mempool[j + 1]
-                mempool[j + 1] = a
 
-    with open('mempool.json', 'w') as m:
-        json.dump(mempool, m, indent=4)
+def count_stat():
+    tr = get_mempool_from_file()
+    for i in range(len(tr)):
+        if tr[i]["feeRate"] == 1:
+            fee_r[1] += 1
+
+        if tr[i]["feeRate"] == 2:
+            fee_r[2] += 1
+
+        if tr[i]["feeRate"] == 3:
+            fee_r[3] += 1
+
+        if tr[i]["feeRate"] == 4:
+            fee_r[4] += 1
+
+        if tr[i]["feeRate"] == 5:
+            fee_r[5] += 1
+
+        if tr[i]["feeRate"] == 6:
+            fee_r[6] += 1
+
+        if tr[i]["feeRate"] == 7:
+            fee_r[7] += 1
+
+        if tr[i]["feeRate"] == 8:
+            fee_r[8] += 1
+
+        if tr[i]["feeRate"] == 9:
+            fee_r[9] += 1
+
+        if tr[i]["feeRate"] == 10:
+            fee_r[10] += 1
+
+        if tr[i]["feeRate"] == 11:
+            fee_r[11] += 1
+
+        if tr[i]["feeRate"] == 12:
+            fee_r[12] += 1
+
+        if tr[i]["feeRate"] == 13:
+            fee_r[13] += 1
+
+        if tr[i]["feeRate"] == 14:
+            fee_r[14] += 1
+
+        if tr[i]["feeRate"] == 15:
+            fee_r[15] += 1
+
+        if tr[i]["feeRate"] == 16:
+            fee_r[16] += 1
+
+        if tr[i]["feeRate"] == 17:
+            fee_r[17] += 1
+
+        if tr[i]["feeRate"] == 18:
+            fee_r[18] += 1
+
+        if tr[i]["feeRate"] == 19:
+            fee_r[19] += 1
+
+        if tr[i]["feeRate"] >= 20:
+            fee_r['20&More'] += 1
+
+
+def process(par):
+    block_size = 1000000
+    while True:
+        if par.value == True:
+            get_transactions_from_MempoolSpace()
+            count_stat()
+            feeRate_to_db()
+            if sum_size() > block_size:
+                compare()
+            for key in fee_r:
+                fee_r[key] = 0
 
 
 def check_same(massive):
@@ -72,9 +143,13 @@ def int_r(n):
 
 
 def avg_feeRate():  # средний feeRate
-    with open('mempool.json', 'r') as f:
-        Mempool = json.load(f)
-    avg = int_r(Mempool[1000]['feeRate'])
+    max_val = max(fee_r.values())
+    final_dict = {k: v for k, v in fee_r.items() if v == max_val}
+    avg = 0
+    for d in final_dict.keys():
+        avg = d
+    if avg == '20&More':
+        avg = 20
     return avg
 
 
@@ -83,7 +158,10 @@ def sum_size():  # вес всего мемпула
         Mempool = json.load(f)
         sum = 0
     for i in range(len(Mempool)):
-        sum += Mempool[i]['vsize']
+        if Mempool[i]['vsize']:
+            sum += Mempool[i]['vsize']
+        else:
+            sum += Mempool[i]['size']
     return sum
 
 
@@ -97,27 +175,29 @@ def amount_of_transactions():  # количество транзакций в п
 
 
 def feeRate_to_db():
-    load()
+    avg = avg_feeRate()
+    dt_now = datetime.now()
+    t = dt_now.strftime("%Y-%m-%d-%H.%M.%S")
     con = sqlite3.connect('avgFee.db')
     cur = con.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS avgFee(Date , avg text);""")
     con.commit()
-    dt_now = datetime.now()
-    t = dt_now.strftime("%Y-%m-%d-%H.%M.%S")
-    avg = avg_feeRate()
-    mempool()
-    p = (t, avg)
-    cur.execute("INSERT INTO avgFee VALUES(?, ?);", p)
-    con.commit()
-
-
-def load():
-    get_transactions_from_MempoolSpace()
-    block_size = 1000000
-    while sum_size() <= block_size:
-        get_transactions_from_MempoolSpace()
-        sort()
-        time.sleep(random.uniform(1, 5))
+    cur.execute("""SELECT * FROM avgFee ORDER BY Date DESC LIMIT 1""")
+    data = cur.fetchone()
+    if (data is not None) and (data[1] == '20&More'):
+        last = '20'
+    if (data is not None) and (data[1] != '20&More'):
+        last = data[1]
+    if data is None:
+        p = (t, avg)
+        cur.execute("INSERT INTO avgFee VALUES(?, ?);", p)
+        con.commit()
+    elif (avg != int(last)):
+        if avg == 20:
+            avg = '20&More'
+        p = (t, avg)
+        cur.execute("INSERT INTO avgFee VALUES(?, ?);", p)
+        con.commit()
 
 
 def load_id(par):
@@ -132,21 +212,89 @@ def load_id(par):
         time.sleep(60)
 
 
-def mempool():
-    txsParams = []
+def compare():
+    print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] deleting mined transactions')
+    Mempool = []
     with open('Mempool_id.json', 'r') as f:
         mempoolTxIds = json.load(f)
-    with open('mempool.json', 'r') as f:
-        mempool1 = json.load(f)
-    for i in range(len(mempoolTxIds)):
-        for j in range(len(mempool1)):
-            if mempoolTxIds[i] == mempool1[j]["txid"]:
-                txsParams.append(mempool1[j])
-    for i in range(len(txsParams)):
-        for j in range(0, len(txsParams) - i - 1):
-            if txsParams[j]['feeRate'] < txsParams[j + 1]['feeRate']:
-                a = txsParams[j]
-                txsParams[j] = txsParams[j + 1]
-                txsParams[j + 1] = a
+    mempool = get_mempool_from_file()
+    for i in range(len(mempool)):
+        for j in range(len(mempoolTxIds)):
+            if mempool[i]["txid"] == mempoolTxIds[j]:
+                Mempool.append(mempool[i])
+            else:
+                if mempool[i]['feeRate'] == 1:
+                    fee_r[1] -= 1
+
+                if mempool[i]['feeRate'] == 2:
+                    fee_r[2] -= 1
+
+                if mempool[i]['feeRate'] == 3:
+                    fee_r[3] -= 1
+
+                if mempool[i]['feeRate'] == 4:
+                    fee_r[4] -= 1
+
+                if mempool[i]['feeRate'] == 5:
+                    fee_r[5] -= 1
+
+                if mempool[i]['feeRate'] == 6:
+                    fee_r[6] -= 1
+
+                if mempool[i]['feeRate'] == 7:
+                    fee_r[7] -= 1
+
+                if mempool[i]['feeRate'] == 8:
+                    fee_r[8] -= 1
+
+                if mempool[i]['feeRate'] == 9:
+                    fee_r[9] -= 1
+
+                if mempool[i]['feeRate'] == 10:
+                    fee_r[10] -= 1
+
+                if mempool[i]['feeRate'] == 11:
+                    fee_r[11] -= 1
+
+                if mempool[i]['feeRate'] == 12:
+                    fee_r[12] -= 1
+
+                if mempool[i]['feeRate'] == 13:
+                    fee_r[13] -= 1
+
+                if mempool[i]['feeRate'] == 14:
+                    fee_r[14] -= 1
+
+                if mempool[i]['feeRate'] == 15:
+                    fee_r[15] -= 1
+
+                if mempool[i]['feeRate'] == 16:
+                    fee_r[16] -= 1
+
+                if mempool[i]['feeRate'] == 17:
+                    fee_r[17] -= 1
+
+                if mempool[i]['feeRate'] == 18:
+                    fee_r[18] -= 1
+
+                if mempool[i]['feeRate'] == 19:
+                    fee_r[19] -= 1
+
+                if mempool[i]['feeRate'] == 20:
+                    fee_r['20&More'] -= 1
     with open('mempool.json', 'w') as m:
-        json.dump(txsParams, m, indent=4)
+        json.dump(Mempool, m, indent=4)
+    print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] continue count')
+
+
+def mine_block():
+    Mempool = []
+    with open('Mempool_id.json', 'r') as f:
+        mempoolTxIds = json.load(f)
+    mempool = get_mempool_from_file()
+    for i in range(len(mempool)):
+        for j in range(len(mempoolTxIds)):
+            if mempool[i]["txid"] == mempoolTxIds[j]:
+                Mempool.append(mempool[i])
+    with open('mempool.json', 'w') as m:
+        json.dump(Mempool, m, indent=4)

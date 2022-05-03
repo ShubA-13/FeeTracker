@@ -66,6 +66,7 @@ if __name__ == '__main__':
         file.close()
 
     if os.stat('mempool.json').st_size != 0:
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] delete old transactions')
         funcs.mine_block()
 
     pars = Value('d', True)

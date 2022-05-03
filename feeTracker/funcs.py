@@ -4,7 +4,6 @@ import requests
 from datetime import datetime
 import os
 import sqlite3
-import random
 
 fee_r = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
          11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 0, 19: 0, '20&More': 0}
@@ -16,7 +15,10 @@ def get_transactions_from_MempoolSpace():
     response = requests.get(url)
     transactions = response.json()
 
+    got_from_MempoolSpace = False
+
     if (transactions):
+        got_from_MempoolSpace = True
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive response OK')
         for i in range(len(transactions)):
             transactions[i]["feeRate"] = int_r(transactions[i]["fee"] / transactions[i]["vsize"])
@@ -44,6 +46,18 @@ def get_transactions_from_MempoolSpace():
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive error response with 404')
 
     response.close()
+    return got_from_MempoolSpace
+
+def get_transactions():
+    source = 'none'
+    if get_transactions_from_MempoolSpace() == True:
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] transactions were received')
+        source = 'memepool.space'
+
+    # else альтернативные источники
+
+    return source
+
 
 
 def get_mempool_from_file():
@@ -120,11 +134,12 @@ def process(par):
     block_size = 1000000
     while True:
         if par.value == True:
-            get_transactions_from_MempoolSpace()
+            source = get_transactions()
             count_stat()
             feeRate_to_db()
             if sum_size() > block_size:
-                compare()
+                if source == 'memepool.space':
+                    compare_mempoolSpace()
             for key in fee_r:
                 fee_r[key] = 0
 
@@ -206,13 +221,14 @@ def load_id(par):
             url = 'https://mempool.space/api/mempool/txids'
             response = requests.get(url)
             mempoolTxIds = response.json()
+            print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] get transactions IDs from mempool')
             with open('Mempool_id.json', 'w') as m:
                 json.dump(mempoolTxIds, m, indent=4)
             response.close()
         time.sleep(60)
 
 
-def compare():
+def compare_mempoolSpace():
     print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] deleting mined transactions')
     Mempool = []
     with open('Mempool_id.json', 'r') as f:

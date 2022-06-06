@@ -5,7 +5,6 @@ from datetime import datetime
 import os
 import sqlite3
 
-
 fee_r = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
          11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 0, 19: 0, '20&More': 0}
 
@@ -68,7 +67,8 @@ def get_transactions_from_BlockchainCom():
         # print(tr_vals)
         for i in range(len(tr_vals)):
             mempool_reform.append({'txid': tr_vals[i]['hash'], 'fee': tr_vals[i]['fee'], 'size': tr_vals[i]['size'],
-                                   'feeRate': int_r(tr_vals[i]['fee'] / tr_vals[i]['size']), 'source': 'Blockchain.com'})
+                                   'feeRate': int_r(tr_vals[i]['fee'] / tr_vals[i]['size']),
+                                   'source': 'Blockchain.com'})
         print(mempool_reform)
 
         if os.stat('mempool.json').st_size == 0:
@@ -98,16 +98,16 @@ def get_transactions_from_BlockchainCom():
 
 
 def get_transactions():
-    #source = 'none'
+    # source = 'none'
     if get_transactions_from_MempoolSpace() == True:
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] transactions were received from mempool.space')
-        #source = 'memepool.space'
+        # source = 'memepool.space'
 
     elif get_transactions_from_BlockchainCom() == True:
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] transactions were received from Blockchain.com')
-        #source = 'Blockchain.com'
+        # source = 'Blockchain.com'
 
-    #return source
+    # return source
 
 
 def get_mempool_from_file():
@@ -119,66 +119,13 @@ def get_mempool_from_file():
 def count_stat():
     tr = get_mempool_from_file()
     for i in range(len(tr)):
-        if tr[i]["feeRate"] == 1:
-            fee_r[1] += 1
-
-        if tr[i]["feeRate"] == 2:
-            fee_r[2] += 1
-
-        if tr[i]["feeRate"] == 3:
-            fee_r[3] += 1
-
-        if tr[i]["feeRate"] == 4:
-            fee_r[4] += 1
-
-        if tr[i]["feeRate"] == 5:
-            fee_r[5] += 1
-
-        if tr[i]["feeRate"] == 6:
-            fee_r[6] += 1
-
-        if tr[i]["feeRate"] == 7:
-            fee_r[7] += 1
-
-        if tr[i]["feeRate"] == 8:
-            fee_r[8] += 1
-
-        if tr[i]["feeRate"] == 9:
-            fee_r[9] += 1
-
-        if tr[i]["feeRate"] == 10:
-            fee_r[10] += 1
-
-        if tr[i]["feeRate"] == 11:
-            fee_r[11] += 1
-
-        if tr[i]["feeRate"] == 12:
-            fee_r[12] += 1
-
-        if tr[i]["feeRate"] == 13:
-            fee_r[13] += 1
-
-        if tr[i]["feeRate"] == 14:
-            fee_r[14] += 1
-
-        if tr[i]["feeRate"] == 15:
-            fee_r[15] += 1
-
-        if tr[i]["feeRate"] == 16:
-            fee_r[16] += 1
-
-        if tr[i]["feeRate"] == 17:
-            fee_r[17] += 1
-
-        if tr[i]["feeRate"] == 18:
-            fee_r[18] += 1
-
-        if tr[i]["feeRate"] == 19:
-            fee_r[19] += 1
-
-        if tr[i]["feeRate"] >= 20:
+        if tr[i]['feeRate'] < 20:
+            fr = int(tr[i]['feeRate'])
+            fee_r[fr] += 1
+        else:
             fee_r['20&More'] += 1
 
+    print(fee_r)
 
 
 def process(par):
@@ -290,67 +237,14 @@ def compare():
             req = url + mempool[i]['txid']
             response = requests.get(req)
             info = response.json()
-            if info['status']['confirmed'] != 'True':
+            isConfirmedMS = info['status']['confirmed']
+            if isConfirmedMS != 'True':
                 Mempool.append(mempool[i])
             else:
-                if mempool[i]['feeRate'] == 1:
-                    fee_r[1] -= 1
-
-                if mempool[i]['feeRate'] == 2:
-                    fee_r[2] -= 1
-
-                if mempool[i]['feeRate'] == 3:
-                    fee_r[3] -= 1
-
-                if mempool[i]['feeRate'] == 4:
-                    fee_r[4] -= 1
-
-                if mempool[i]['feeRate'] == 5:
-                    fee_r[5] -= 1
-
-                if mempool[i]['feeRate'] == 6:
-                    fee_r[6] -= 1
-
-                if mempool[i]['feeRate'] == 7:
-                    fee_r[7] -= 1
-
-                if mempool[i]['feeRate'] == 8:
-                    fee_r[8] -= 1
-
-                if mempool[i]['feeRate'] == 9:
-                    fee_r[9] -= 1
-
-                if mempool[i]['feeRate'] == 10:
-                    fee_r[10] -= 1
-
-                if mempool[i]['feeRate'] == 11:
-                    fee_r[11] -= 1
-
-                if mempool[i]['feeRate'] == 12:
-                    fee_r[12] -= 1
-
-                if mempool[i]['feeRate'] == 13:
-                    fee_r[13] -= 1
-
-                if mempool[i]['feeRate'] == 14:
-                    fee_r[14] -= 1
-
-                if mempool[i]['feeRate'] == 15:
-                    fee_r[15] -= 1
-
-                if mempool[i]['feeRate'] == 16:
-                    fee_r[16] -= 1
-
-                if mempool[i]['feeRate'] == 17:
-                    fee_r[17] -= 1
-
-                if mempool[i]['feeRate'] == 18:
-                    fee_r[18] -= 1
-
-                if mempool[i]['feeRate'] == 19:
-                    fee_r[19] -= 1
-
-                if mempool[i]['feeRate'] == 20:
+                if mempool[i]['feeRate'] < 20:
+                    fr = mempool[i]['feeRate']
+                    fee_r[fr] -= 1
+                else:
                     fee_r['20&More'] -= 1
 
         elif mempool[i]['source'] == 'Blockchain.com':
@@ -358,78 +252,19 @@ def compare():
             req = url + mempool[i]['txid']
             response = requests.get(req)
             info = response.json()
-            if info['relayed_by'] == '0.0.0.0':
+            isConfirmedB = info['block_index']
+            if isConfirmedB == 'null':
                 Mempool.append(mempool[i])
             else:
-                if mempool[i]['feeRate'] == 1:
-                    fee_r[1] -= 1
-
-                if mempool[i]['feeRate'] == 2:
-                    fee_r[2] -= 1
-
-                if mempool[i]['feeRate'] == 3:
-                    fee_r[3] -= 1
-
-                if mempool[i]['feeRate'] == 4:
-                    fee_r[4] -= 1
-
-                if mempool[i]['feeRate'] == 5:
-                    fee_r[5] -= 1
-
-                if mempool[i]['feeRate'] == 6:
-                    fee_r[6] -= 1
-
-                if mempool[i]['feeRate'] == 7:
-                    fee_r[7] -= 1
-
-                if mempool[i]['feeRate'] == 8:
-                    fee_r[8] -= 1
-
-                if mempool[i]['feeRate'] == 9:
-                    fee_r[9] -= 1
-
-                if mempool[i]['feeRate'] == 10:
-                    fee_r[10] -= 1
-
-                if mempool[i]['feeRate'] == 11:
-                    fee_r[11] -= 1
-
-                if mempool[i]['feeRate'] == 12:
-                    fee_r[12] -= 1
-
-                if mempool[i]['feeRate'] == 13:
-                    fee_r[13] -= 1
-
-                if mempool[i]['feeRate'] == 14:
-                    fee_r[14] -= 1
-
-                if mempool[i]['feeRate'] == 15:
-                    fee_r[15] -= 1
-
-                if mempool[i]['feeRate'] == 16:
-                    fee_r[16] -= 1
-
-                if mempool[i]['feeRate'] == 17:
-                    fee_r[17] -= 1
-
-                if mempool[i]['feeRate'] == 18:
-                    fee_r[18] -= 1
-
-                if mempool[i]['feeRate'] == 19:
-                    fee_r[19] -= 1
-
-                if mempool[i]['feeRate'] == 20:
+                if mempool[i]['feeRate'] < 20:
+                    fr = mempool[i]['feeRate']
+                    fee_r[fr] -= 1
+                else:
                     fee_r['20&More'] -= 1
-
-
 
     with open('mempool.json', 'w') as m:
         json.dump(Mempool, m, indent=4)
     print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] continue count')
-
-
-
-
 
 # def mine_block():
 #     Mempool = []

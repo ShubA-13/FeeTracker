@@ -1,5 +1,4 @@
 import json
-import time
 import requests
 from datetime import datetime
 import os
@@ -64,7 +63,6 @@ def get_transactions_from_BlockchainCom():
         got_from_BlocchainCom = True
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive response OK')
         tr_vals = transactions['txs']
-        # print(tr_vals)
         for i in range(len(tr_vals)):
             mempool_reform.append({'txid': tr_vals[i]['hash'], 'fee': tr_vals[i]['fee'], 'size': tr_vals[i]['size'],
                                    'feeRate': int_r(tr_vals[i]['fee'] / tr_vals[i]['size']),
@@ -98,16 +96,12 @@ def get_transactions_from_BlockchainCom():
 
 
 def get_transactions():
-    # source = 'none'
     if get_transactions_from_MempoolSpace() == True:
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] transactions were received from mempool.space')
-        # source = 'memepool.space'
+
 
     elif get_transactions_from_BlockchainCom() == True:
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] transactions were received from Blockchain.com')
-        # source = 'Blockchain.com'
-
-    # return source
 
 
 def get_mempool_from_file():
@@ -129,17 +123,13 @@ def count_stat():
 
 
 def process(par):
-    block_size = 1000000
+    N = 2000000
     while True:
         if par.value == True:
             get_transactions()
             count_stat()
             feeRate_to_db()
-            if sum_size() > block_size:
-                # if source == 'memepool.space':
-                #     compare_mempoolSpace()
-                # if source == 'Blockchain.com':
-                #     compare_mempoolSpace()
+            if sum_size() > N:
                 compare()
             for key in fee_r:
                 fee_r[key] = 0
@@ -166,6 +156,7 @@ def avg_feeRate():  # средний feeRate
         avg = d
     if avg == '20&More':
         avg = 20
+
     return avg
 
 
@@ -215,19 +206,6 @@ def feeRate_to_db():
         con.commit()
 
 
-# def load_id(par):
-#     while True:
-#         if par.value == True:
-#             url = 'https://mempool.space/api/mempool/txids'
-#             response = requests.get(url)
-#             mempoolTxIds = response.json()
-#             print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] get transactions IDs from mempool')
-#             with open('Mempool_id.json', 'w') as m:
-#                 json.dump(mempoolTxIds, m, indent=4)
-#             response.close()
-#         time.sleep(30)
-
-
 def compare():
     mempool = get_mempool_from_file()
     Mempool = []
@@ -265,15 +243,3 @@ def compare():
     with open('mempool.json', 'w') as m:
         json.dump(Mempool, m, indent=4)
     print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] continue count')
-
-# def mine_block():
-#     Mempool = []
-#     with open('Mempool_id.json', 'r') as f:
-#         mempoolTxIds = json.load(f)
-#     mempool = get_mempool_from_file()
-#     for i in range(len(mempool)):
-#         for j in range(len(mempoolTxIds)):
-#             if mempool[i]["txid"] == mempoolTxIds[j]:
-#                 Mempool.append(mempool[i])
-#     with open('mempool.json', 'w') as m:
-#         json.dump(Mempool, m, indent=4)

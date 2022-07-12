@@ -3,6 +3,7 @@ import requests
 from datetime import datetime
 import os
 import sqlite3
+import time
 
 fee_r = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
          11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 0, 19: 0, '20&More': 0}
@@ -27,6 +28,9 @@ def get_transactions_from_MempoolSpace():
             with open('mempool.json', 'w') as m:
                 json.dump(transactions, m, indent=4)
 
+            print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Mempool txs ids cache size', len(transactions))
+            print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Mempool txs cache size', sum_size())
+
         else:
             with open('mempool.json', 'r') as f:
                 mempool = json.load(f)
@@ -36,11 +40,12 @@ def get_transactions_from_MempoolSpace():
 
             Mempool = check_same(mempool)
 
+            with open('mempool.json', 'w') as m:
+                json.dump(Mempool, m, indent=4)
+
             print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Mempool txs ids cache size', len(Mempool))
             print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Mempool txs cache size', sum_size())
 
-            with open('mempool.json', 'w') as m:
-                json.dump(Mempool, m, indent=4)
 
     else:
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] Receive error response with 404')
@@ -110,11 +115,10 @@ def get_mempool_from_file():
     return mempool
 
 
-def count_stat():
-    tr = get_mempool_from_file()
-    for i in range(len(tr)):
-        if tr[i]['feeRate'] < 20:
-            fr = int(tr[i]['feeRate'])
+def count_stat(tx):
+    for i in range(len(tx)):
+        if tx[i]['feeRate'] < 20:
+            fr = int(tx[i]['feeRate'])
             fee_r[fr] += 1
         else:
             fee_r['20&More'] += 1
@@ -123,14 +127,32 @@ def count_stat():
 
 
 def process(par):
-    N = 2000000
+    N = 1500000
+    perv_block_size = 0
+    now_block_size = 0
     while True:
         if par.value == True:
             get_transactions()
-            count_stat()
-            feeRate_to_db()
-            if sum_size() > N:
-                compare()
+            txs = compare()
+            now_block_size = amount_txs_mined(txs)
+            if now_block_size == 0:
+                mempool = get_mempool_from_file()
+                count_stat(mempool)
+                if amount_of_transactions() > 60:
+                    feeR = avg_feeRate()
+                    feeRate_to_db(feeR)
+            elif now_block_size > perv_block_size:
+                feeR = min_fee(txs)
+                feeRate_to_db(feeR)
+            else:
+                mempool = get_mempool_from_file()
+                count_stat(mempool)
+                if amount_of_transactions() > 60:
+                    feeR = avg_feeRate()
+                    feeRate_to_db(feeR)
+            perv_block_size = amount_txs_mined(txs)
+            if sum_size_mined(txs) > N:
+                new_block()
             for key in fee_r:
                 fee_r[key] = 0
 
@@ -155,9 +177,47 @@ def avg_feeRate():  # средний feeRate
     for d in final_dict.keys():
         avg = d
     if avg == '20&More':
-        avg = 20
+        fee_r_wo20 = fee_r.copy()
+        fee_r_wo20.pop('20&More')
+        max_val_wo20 = max(fee_r_wo20.values())
+        final_dict_wo20 = {k: v for k, v in fee_r.items() if v == max_val_wo20}
+        for i in final_dict_wo20.keys():
+            avg_wo20 = i
+        if fee_r['20&More'] / final_dict_wo20[avg_wo20] < 15:
+            avg = avg_wo20
 
+    if avg != '20&More':
+        fee_r_m = fee_r.copy()
+        fee_r_m.pop('20&More')
+        fee_r_m.pop(avg)
+        max_val_m = max(fee_r_m.values())
+        final_dict_m = {k: v for k, v in fee_r_m.items() if v == max_val_m}
+        for i in final_dict_m.keys():
+            avg_m = i
+        if avg_m > avg and fee_r[avg_m] / fee_r[avg] > 0.7:
+            avg = avg_m
+
+    if avg == '20&More':
+        avg = 20
+    if avg != '20&More':
+        avg += 1
+    print("mempool avg", avg)
     return avg
+
+
+def sum_size_mined(txs):
+    sum = 0
+    for i in range(len(txs)):
+        if txs[i]['source'] == 'mempool.space':
+            sum += txs[i]['vsize']
+        elif txs[i]['source'] == 'Blockchain.com':
+            sum += txs[i]['size']
+    return sum
+
+
+def amount_txs_mined(txs):
+    return len(txs)
+
 
 
 def sum_size():  # вес всего мемпула
@@ -180,8 +240,7 @@ def amount_of_transactions():  # количество транзакций в п
     return count
 
 
-def feeRate_to_db():
-    avg = avg_feeRate()
+def feeRate_to_db(feeR):
     dt_now = datetime.now()
     t = dt_now.strftime("%Y-%m-%d-%H.%M.%S")
     con = sqlite3.connect('avgFee.db')
@@ -195,13 +254,13 @@ def feeRate_to_db():
     if (data is not None) and (data[1] != '20&More'):
         last = data[1]
     if data is None:
-        p = (t, avg)
+        p = (t, feeR)
         cur.execute("INSERT INTO avgFee VALUES(?, ?);", p)
         con.commit()
-    elif (avg != int(last)):
-        if avg == 20:
-            avg = '20&More'
-        p = (t, avg)
+    elif (feeR != int(last)):
+        if feeR == 20:
+            feeR = '20&More'
+        p = (t, feeR)
         cur.execute("INSERT INTO avgFee VALUES(?, ?);", p)
         con.commit()
 
@@ -209,21 +268,24 @@ def feeRate_to_db():
 def compare():
     mempool = get_mempool_from_file()
     Mempool = []
+    block = []
     for i in range(len(mempool)):
-        if mempool[i]['source'] == 'mempool.sapce':
+        if mempool[i]['source'] == 'mempool.space':
             url = 'https://mempool.space/api/tx/'
-            req = url + mempool[i]['txid']
+            req = url + mempool[i]['txid'] + '/status'
             response = requests.get(req)
             info = response.json()
-            isConfirmedMS = info['status']['confirmed']
-            if isConfirmedMS != 'True':
-                Mempool.append(mempool[i])
-            else:
+            isConfirmedMS = info['confirmed']
+            if isConfirmedMS == True:
+                block.append(mempool[i])
                 if mempool[i]['feeRate'] < 20:
                     fr = mempool[i]['feeRate']
                     fee_r[fr] -= 1
                 else:
                     fee_r['20&More'] -= 1
+            else:
+                Mempool.append(mempool[i])
+
 
         elif mempool[i]['source'] == 'Blockchain.com':
             url = 'https://blockchain.info/rawtx/'
@@ -234,6 +296,7 @@ def compare():
             if isConfirmedB == 'null':
                 Mempool.append(mempool[i])
             else:
+                block.append(mempool[i])
                 if mempool[i]['feeRate'] < 20:
                     fr = mempool[i]['feeRate']
                     fee_r[fr] -= 1
@@ -242,4 +305,42 @@ def compare():
 
     with open('mempool.json', 'w') as m:
         json.dump(Mempool, m, indent=4)
+
+    if os.stat('block.json').st_size == 0:
+        with open('block.json', 'w') as m:
+            json.dump(block, m, indent=4)
+
+    else:
+        with open('block.json', 'r') as f:
+            block_txs = json.load(f)
+
+        for i in range(len(block)):
+            block_txs.append(block[i])
+
+        with open('block.json', 'w') as m:
+            json.dump(block, m, indent=4)
+
+    print("block", block)
+    print("mempool", Mempool)
     print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] continue count')
+    return block
+
+def clear_mempool():
+    file = open('mempool.json', 'w')
+    file.close()
+
+def new_block():
+    file = open('block.json', 'w')
+    file.close()
+
+def min_fee(txs):
+    min = 1000000
+    for i in range(len(txs)):
+        if txs[i]['feeRate'] < min:
+            min = txs[i]['feeRate']
+    if min >= 20:
+        min = '20&More'
+    print('min in block', min)
+    if min != '20&More':
+        min += 1
+    return min

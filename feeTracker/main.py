@@ -62,7 +62,11 @@ if __name__ == '__main__':
 
     if os.stat('mempool.json').st_size != 0:
         print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] delete old transactions')
-        funcs.compare()
+        funcs.clear_mempool()
+
+    if os.stat('block.json').st_size != 0:
+        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] delete old transactions from virtual block')
+        funcs.new_block()
 
     pars = Value('d', True)
     p = Process(target=funcs.process, args=(pars,))

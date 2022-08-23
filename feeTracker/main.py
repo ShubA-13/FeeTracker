@@ -51,21 +51,26 @@ def get_avg_in_period():
 if __name__ == '__main__':
 
     if not os.path.isfile('mempool.json'):
-        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] lockal list of mempool TXIDs is creating')
+        print('[', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '] lockal list of mempool TXIDs is creating')
         file = open('mempool.json', 'w')
         file.close()
 
     if not os.path.isfile('avgFee.db'):
-        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] lockal DB is creating')
+        print('[', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '] lockal DB is creating')
         file = open('avgFee.db', 'w')
         file.close()
 
+    if not os.path.isfile('block.json'):
+        print('[', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '] lockal block is creating')
+        file = open('block.json', 'w')
+        file.close()
+
     if os.stat('mempool.json').st_size != 0:
-        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] delete old transactions')
+        print('[', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '] delete old transactions')
         funcs.clear_mempool()
 
     if os.stat('block.json').st_size != 0:
-        print('[', datetime.now().strftime("%Y-%m-%d-%H.%M.%S"), '] delete old transactions from virtual block')
+        print('[', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), '] delete old transactions from virtual block')
         funcs.new_block()
 
     pars = Value('d', True)
